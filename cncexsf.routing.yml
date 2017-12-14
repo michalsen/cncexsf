@@ -1,0 +1,7 @@
+cncexsf.form:
+  path: '/admin/cncexsf'
+  defaults:
+    _form: '\Drupal\cncexsf\Form\CNCExSfForm'
+    _title: 'CNC/Ex Salesforce Integration'
+  requirements:
+    _permission: 'admin content'
