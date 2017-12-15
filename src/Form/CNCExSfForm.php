@@ -119,6 +119,7 @@ class CNCExSfForm extends FormBase {
     }
 
     $check = testCredentials($value);
+    dpm($check);
 
     \Drupal::state()->set('cncexsf', json_encode($value));
   }
@@ -138,12 +139,16 @@ function testCredentials($value) {
     // Ensure Product2 Object exists
     // Wish I could tighten this up right now.
     $sfFields = [];
-    $fields = $client->describeSObjects(array('Product2'));
-    $var = $fields[0]->getFields()->toArray();
-      foreach ($var as $key => $value) {
-        $sfFields[$object][] = $value->getName();
-      }
-  return $return;
+    $objects = ['Product2', 'Machine_Photo__c'];
+            foreach ($objects as $object) {
+              // Product2 Fields
+              $fields = $client->describeSObjects(array($object));
+              $var = $fields[0]->getFields()->toArray();
+                foreach ($var as $key => $value) {
+                  $sfFields[$object][] = $value->getName();
+                }
+            }
+  return $sfFields;
 }
 
 
