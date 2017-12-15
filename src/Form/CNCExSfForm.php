@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\Entity\Node;
 use Drupal\file\Entity\File;
+use Drupal\Core\Url;
 
 /**
   *  Provides SNTrack Email form
@@ -30,42 +31,16 @@ class CNCExSfForm extends FormBase {
     $sfCred = SalesforceCredentials();
 
     $cncexsf = \Drupal::state()->get('cncexsf');
-    $defaultValue = json_decode($cncexsf);
+    $sfCred = json_decode($cncexsf);
 
-    $defaultFile = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $defaultValue->cncexsf_wsdl]);;
-    foreach ($defaultFile as $key => $image) {
-      $fid = $key;
+
+    if (strlen($sfCred->cncexsf_wsdl) > 0) {
+        $defaultFile = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $sfCred->cncexsf_wsdl]);
+        foreach ($defaultFile as $key => $image) {
+          $fid = $key;
+        }
     }
 
-        if (isset($sfCred)) {
-            $SFbuilder = new \Phpforce\SoapClient\ClientBuilder(
-              $sfCred->cncexsf_wsdl,
-              $sfCred->cncexsf_user,
-              $sfCred->cncexsf_pass . $sfCred->cncexsf_api
-            );
-          $client = $SFbuilder->build();
-
-         try {
-            $sfFields = [];
-            $objects = ['Product2', 'Machine_Photo__c'];
-
-            foreach ($objects as $object) {
-              // Product2 Fields
-              $fields = $client->describeSObjects(array($object));
-              $var = $fields[0]->getFields()->toArray();
-
-                foreach ($var as $key => $value) {
-                  $sfFields[$object][] = $value->getName();
-                }
-
-            }
-
-          } catch (Exception $e) {
-            print $e;
-          }
-
-
-        }
 
 
 
@@ -103,7 +78,7 @@ class CNCExSfForm extends FormBase {
       '#type' => 'managed_file',
       '#title' => $this->t('WSDL'),
       '#description' => $sfCred->cncexsf_wsdl,
-      '#required' => TRUE,
+      '#required' => FALSE,
       '#default_value' => array($fid),
       '#upload_location' => 'public://wsdl',
       '#upload_validators' => [
@@ -115,6 +90,12 @@ class CNCExSfForm extends FormBase {
         '#type' => 'submit',
         '#value' => t('Submit')
       );
+
+    // $url = Url::fromUserInput('/admin/cncexsf');
+    // $link = \Drupal::l('Test', $url);
+    // $form['test'] = array(
+    //     '#markup' => $link
+    //   );
 
     return $form;
 
@@ -137,11 +118,33 @@ class CNCExSfForm extends FormBase {
       $value['cncexsf_wsdl'] = $file->get('uri')->value;
     }
 
+    $check = testCredentials($value);
+
     \Drupal::state()->set('cncexsf', json_encode($value));
   }
 
 }
 
+// Upon form submission, test connection
+function testCredentials($value) {
+  $SFbuilder = new \Phpforce\SoapClient\ClientBuilder(
+    $value['cncexsf_wsdl'],
+    $value['cncexsf_user'],
+    $value['cncexsf_pass'],
+    $value['cncexsf_api']
+  );
+  $client = $SFbuilder->build();
+
+    // Ensure Product2 Object exists
+    // Wish I could tighten this up right now.
+    $sfFields = [];
+    $fields = $client->describeSObjects(array('Product2'));
+    $var = $fields[0]->getFields()->toArray();
+      foreach ($var as $key => $value) {
+        $sfFields[$object][] = $value->getName();
+      }
+  return $return;
+}
 
 
 function SalesforceCredentials() {
